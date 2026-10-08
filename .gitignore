@@ -1,0 +1,8 @@
+/build/
+/ls
+*.zip
+*.o
+*.d
+__pycache__/
+*.pyc
+/GIT_UPLOAD.md
