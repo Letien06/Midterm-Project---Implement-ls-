@@ -1,4 +1,4 @@
-# Hướng dẫn tải code, build và kiểm thử trên Linux
+# Hướng dẫn tải code, build và kiểm thử trên Linux và NetBSD
 
 Tài liệu này dành cho giảng viên hoặc người chấm bài. Sau khi cài công cụ và
 tải code ở bước 1–2, các lệnh từ bước 3 trở đi được chạy từ **thư mục gốc của
@@ -46,6 +46,27 @@ python3 --version
 ```
 
 Mỗi lệnh phải in thông tin phiên bản, không báo `command not found`.
+
+### Nếu chạy trên NetBSD
+
+Máy cần kết nối mạng và cấu hình kho package cho `pkgin`. Chỉ bước cài công
+cụ cần quyền root; gõ từng lệnh riêng, nhập mật khẩu khi `su -` yêu cầu:
+
+```sh
+su -
+export PATH=/usr/pkg/bin:/usr/pkg/sbin:$PATH
+pkgin update
+pkgin install git gmake python312
+exit
+export PATH=/usr/pkg/bin:/usr/pkg/sbin:$PATH
+git --version
+cc --version
+gmake --version
+python3.12 --version
+```
+
+Sau đó chạy bước 2–3 bằng user thường. Trong các bước tiếp theo dùng `gmake`
+thay cho `make` của NetBSD; Python được gọi bằng `python3.12`.
 
 ## 2. Tải code từ GitHub
 
@@ -100,6 +121,28 @@ Build: OK
 Chương trình của project phải được gọi bằng `./ls`, không gọi `ls`, vì `ls`
 không có tiền tố `./` sẽ chạy chương trình hệ thống.
 
+### Build riêng trên NetBSD
+
+GNU Make là `gmake`. Khai báo đầy đủ CPPFLAGS để giữ include path và bật
+API mở rộng của NetBSD, gồm timestamp trong `struct stat` và `major()`/`minor()`:
+
+```sh
+NETBSD_FLAGS='-Iinclude -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -D_NETBSD_SOURCE -D_FILE_OFFSET_BITS=64'
+gmake clean
+gmake CPPFLAGS="$NETBSD_FLAGS"
+test -x ./ls && echo "Build: OK"
+gmake CPPFLAGS="$NETBSD_FLAGS" PYTHON=python3.12 test
+echo $?
+```
+
+Kết quả cuối là `Build: OK`, `Ran 16 tests ...`, `OK` và `0`.
+Các target làm build sạch phải tiếp tục truyền CPPFLAGS:
+
+```sh
+gmake CPPFLAGS="$NETBSD_FLAGS" PYTHON=python3.12 verify
+gmake CPPFLAGS="$NETBSD_FLAGS" demo
+```
+
 ## 5. Chạy thử các lệnh cơ bản
 
 ```sh
@@ -152,6 +195,47 @@ Không cần tự thay đường dẫn mẫu.
 
 Không so output byte-for-byte với GNU `ls`: đề dùng một manual NetBSD rút gọn,
 và chương trình này mặc định chỉ in một entry mỗi dòng, kể cả trên terminal.
+
+### Ví dụ có đáp án cố định
+
+Từ project root, tạo dữ liệu riêng trong thư mục tạm để không phụ thuộc kích
+thước và timestamp của source sau mỗi lần cập nhật:
+
+```sh
+export LC_ALL=C
+example_dir=$(mktemp -d /tmp/ls-example.XXXXXX)
+printf 'abc' > "$example_dir/alpha.txt"
+printf '1234567890' > "$example_dir/beta.txt"
+printf 'hidden' > "$example_dir/.hidden"
+mkdir "$example_dir/sub"
+./ls -A "$example_dir"
+```
+
+Đáp án của lệnh cuối (mỗi tên một dòng):
+
+```text
+.hidden
+alpha.txt
+beta.txt
+sub
+```
+
+`./ls -a "$example_dir"` in thêm `.` và `..` ở đầu. Với hai operand file có
+kích thước 3 và 10 byte, lệnh sau cho đáp án chính xác:
+
+```sh
+./ls -S "$example_dir/alpha.txt" "$example_dir/beta.txt"
+```
+
+```text
+/tmp/ls-example.XXXXXX/beta.txt
+/tmp/ls-example.XXXXXX/alpha.txt
+```
+
+`XXXXXX` trong đáp án là hậu tố thực tế do `mktemp` sinh. Đảo lại bằng `-Sr`
+thì alpha đứng trước beta. `./ls -d "$example_dir/sub"` chỉ in đường dẫn sub.
+`./ls -lh "$example_dir/alpha.txt"` có trường size `3B`; mode, owner, group
+và date do môi trường quyết định. Thư mục ví dụ được giữ lại để thử tiếp.
 
 ## 6. Chạy bộ test tự động
 
@@ -251,6 +335,7 @@ Chi tiết thiết kế và quy tắc ghi đè option nằm trong `README.md`.
 | Không tìm thấy `Makefile` hoặc không có target `test` | Đang đứng sai thư mục; quay lại bước 3 và mở thư mục chứa `Makefile` của bài nộp. |
 | `./ls: No such file or directory` | Chạy `make` và kiểm tra có dòng `Build: OK` ở bước 4. Nếu build báo lỗi, xử lý lỗi build trước. |
 | Lỗi header/hàm POSIX trên Windows | Chạy trong Ubuntu/WSL hoặc Linux như bước 1. |
+| NetBSD báo thiếu `st_atimespec`, `major` hoặc `minor` | Build sạch bằng `gmake` với toàn bộ `NETBSD_FLAGS` ở bước 4. |
 | Inode, UID/GID, thời gian, block khác hình minh họa hoặc máy khác | Đây là dữ liệu phụ thuộc máy; đối chiếu đặc điểm trong bảng ở bước 5 và kết quả `make test`. |
 
 Nếu `make test` báo `FAIL` hoặc `ERROR`, lưu toàn bộ output build/test để xác
