@@ -9,7 +9,7 @@
 
 Bài C11/POSIX mô phỏng 19 tùy chọn của `ls(1)` theo manual NetBSD được cung
 cấp. Các bước tải code, build, sử dụng, đáp án mẫu và kiểm thử nằm ngay dưới
-đây. Bản hướng dẫn riêng cũng có tại [HUONG_DAN_CHAY.md](HUONG_DAN_CHAY.md).
+đây. README này chứa toàn bộ lệnh build, kiểm thử và chạy 19 tùy chọn.
 Chạy project bằng user thường; super-user tự động bật `-A` theo manual.
 
 
@@ -153,7 +153,6 @@ Các target làm build sạch phải tiếp tục truyền CPPFLAGS:
 
 ```sh
 gmake CPPFLAGS="$NETBSD_FLAGS" PYTHON=python3.12 verify
-gmake CPPFLAGS="$NETBSD_FLAGS" demo
 ```
 
 ### 5. Chạy thử các lệnh cơ bản
@@ -190,7 +189,7 @@ Không cần tự thay đường dẫn mẫu.
 | `./ls -a` | Có thêm `.` và `..`. |
 | `./ls -cl README.md` | Long format dùng thời gian thay đổi trạng thái (ctime), không phải thời gian tạo file. |
 | `./ls -d src` | In `src`, không liệt kê các file bên trong. |
-| `./ls -F` | Thư mục có hậu tố `/`; demo minh họa thêm `*`, `@`, `\|`. |
+| `./ls -F` | Thư mục có hậu tố `/`; file thực thi, symlink và FIFO có hậu tố tương ứng. |
 | `./ls -f src` | Bỏ sắp xếp; không có một thứ tự cố định để so giữa các filesystem. |
 | `./ls -lh README.md` | Kích thước dễ đọc, có hậu tố đơn vị. |
 | `./ls -i README.md` | Có số inode ở đầu dòng. |
