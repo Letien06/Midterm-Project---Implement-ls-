@@ -340,3 +340,82 @@ Chi tiết thiết kế và quy tắc ghi đè option nằm trong `README.md`.
 
 Nếu `make test` báo `FAIL` hoặc `ERROR`, lưu toàn bộ output build/test để xác
 định test nào lỗi. `OK` cùng mã thoát `0` mới là kết quả kiểm thử thành công.
+
+## 12. Chạy riêng đủ 19 tùy chọn
+
+Đây là phần dùng khi đề yêu cầu chứng minh đã chạy **đủ 19 tùy chọn**. Mỗi
+lệnh `run_one` bên dưới chỉ gọi một option mục tiêu; các option `-c`, `-h`,
+`-k`, `-u` thêm `-l` hoặc `-s` làm ngữ cảnh hiển thị vì manual quy định chúng
+sửa timestamp hoặc đơn vị của một tùy chọn khác. Không gộp các option còn lại.
+
+Chuẩn bị dữ liệu kiểm soát một lần trong project root:
+
+```sh
+export LC_ALL=C
+export TZ=UTC
+FULL_DIR=$(mktemp -d /tmp/ls-full.XXXXXX)
+printf 'small\n' > "$FULL_DIR/alpha.txt"
+printf 'this is a larger file\n' > "$FULL_DIR/beta.txt"
+printf 'hidden\n' > "$FULL_DIR/.hidden"
+printf 'newline name\n' > "$FULL_DIR/line"
+NONPRINTABLE_NAME=$(printf 'line\nbreak')
+printf 'nonprintable name\n' > "$FULL_DIR/$NONPRINTABLE_NAME"
+mkdir -p "$FULL_DIR/sub/deep"
+printf 'nested\n' > "$FULL_DIR/sub/deep/nested.txt"
+printf '#!/bin/sh\necho demo\n' > "$FULL_DIR/executable.sh"
+chmod 755 "$FULL_DIR/executable.sh"
+ln -s alpha.txt "$FULL_DIR/link-to-alpha"
+mkfifo "$FULL_DIR/named-pipe"
+```
+
+Trên Linux dùng `make`; trên NetBSD thay bằng `gmake` và build trước bằng
+`NETBSD_FLAGS` như mục 4. Sau đó chạy từng dòng riêng trong nhóm dưới đây:
+
+```sh
+run_one() {
+    printf '\n[%s/19] %s\n' "$1" "$2"
+    shift 2
+    "$@"
+    code=$?
+    printf 'exit=%s\n' "$code"
+    [ "$code" -eq 0 ] || FAILED=$((FAILED + 1))
+}
+FAILED=0
+run_one 01 '-A' ./ls -A "$FULL_DIR"
+run_one 02 '-a' ./ls -a "$FULL_DIR"
+run_one 03 '-c (context -l)' ./ls -cl README.md
+run_one 04 '-d' ./ls -d "$FULL_DIR/sub"
+run_one 05 '-F' ./ls -F "$FULL_DIR"
+run_one 06 '-f' ./ls -f "$FULL_DIR"
+run_one 07 '-h (context -l)' ./ls -hl "$FULL_DIR/alpha.txt"
+run_one 08 '-i' ./ls -i "$FULL_DIR/alpha.txt"
+run_one 09 '-k (context -s)' ./ls -sk "$FULL_DIR/alpha.txt"
+run_one 10 '-l' ./ls -l "$FULL_DIR/alpha.txt"
+run_one 11 '-n' ./ls -n "$FULL_DIR/alpha.txt"
+run_one 12 '-q' ./ls -q "$FULL_DIR"
+run_one 13 '-R' ./ls -R "$FULL_DIR"
+run_one 14 '-r' ./ls -r "$FULL_DIR"
+run_one 15 '-S' ./ls -S "$FULL_DIR"
+run_one 16 '-s' ./ls -s "$FULL_DIR/alpha.txt"
+run_one 17 '-t' ./ls -t "$FULL_DIR"
+run_one 18 '-u (context -l)' ./ls -ul "$FULL_DIR/alpha.txt"
+run_one 19 '-w' ./ls -w "$FULL_DIR"
+printf '\nFAILED=%s\n' "$FAILED"
+```
+
+Kết quả cần đạt: mỗi mục có `exit=0`, dòng cuối là `FAILED=0`. Khi xem output,
+đối chiếu các đặc điểm sau: `-a` có `.`, `..`; `-A` bỏ hai mục này; `-d` chỉ in
+operand `sub`; `-F` có `/`, `*`, `@`, `|`; `-h` in kích thước dễ đọc; `-i` có
+inode; `-k` và `-s` có block; `-l` có metadata; `-n` có UID/GID; `-R` có
+`sub:` và `deep:`; `-r` đảo tên; `-S` xếp file lớn trước; `-t` xếp mtime mới
+trước; `-u` dùng access time; `-q` đổi newline trong tên thành `?`, còn `-w`
+giữ tên thô. `-c` dùng ctime trong long format.
+
+Chụp ảnh thành ba phần để chữ không quá nhỏ: mục 01–07, 08–14 và 15–19.
+Giữ lại dòng `[xx/19]`, lệnh, output và `exit=0`; ảnh cuối phải có `FAILED=0`.
+Sau khi chụp xong, dọn thư mục tạm:
+
+```sh
+rm -rf "$FULL_DIR"
+```
+
