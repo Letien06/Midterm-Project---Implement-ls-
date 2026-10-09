@@ -197,14 +197,14 @@ Không cần tự thay đường dẫn mẫu.
 | `./ls -sk README.md` | Dung lượng cấp phát theo đơn vị 1024 byte. |
 | `./ls -l README.md` | Có mode, link count, owner, group, size, date, pathname. |
 | `./ls -n README.md` | Owner/group là UID/GID dạng số. |
-| `./ls -q src` | Thay ký tự không in được bằng `?`; thấy rõ hơn trong `make demo`. |
+| `./ls -q src` | Thay ký tự không in được bằng `?`. |
 | `./ls -R src` | Liệt kê đệ quy. |
 | `./ls -r src` | Đảo thứ tự sắp xếp theo tên. |
 | `./ls -S src` | Sắp xếp theo kích thước, lớn trước. |
 | `./ls -s README.md` | Hiển thị block thực sự cấp phát, không phải số byte logic. |
 | `./ls -t src` | File có mtime mới hơn đứng trước. |
 | `./ls -ul README.md` | Long format dùng access time (atime). |
-| `./ls -w src` | In nguyên tên, thấy khác biệt với `-q` trong demo có ký tự newline. |
+| `./ls -w src` | In nguyên tên, thấy khác biệt với `-q` trong kiểm tra tên có ký tự newline. |
 
 Không so output byte-for-byte với GNU `ls`: đề dùng một manual NetBSD rút gọn,
 và chương trình này mặc định chỉ in một entry mỗi dòng, kể cả trên terminal.
@@ -289,24 +289,6 @@ make verify
 ```
 
 Target này thực hiện `make clean`, build lại chương trình và chạy toàn bộ test.
-
-### 8. Chạy demo chức năng
-
-```sh
-make demo
-```
-
-Demo tạo một thư mục tạm chứa file thường, file ẩn, executable, symbolic link,
-FIFO, cây thư mục con, tên bắt đầu bằng `-` và tên chứa newline. Demo chạy các
-lệnh bao phủ cả 19 option và in lệnh trước từng kết quả. Thời gian, UID/GID,
-inode và số block không phải giá trị cố định; `-f` không có thứ tự cố định.
-Dữ liệu tạm được tự động xóa khi script kết thúc.
-
-Khi thành công, dòng cuối có nội dung:
-
-```text
-Demo completed successfully. Temporary data will now be removed.
-```
 
 ### 9. Kiểm tra sanitizer - tùy chọn
 
@@ -453,15 +435,12 @@ make
 ```
 
 The executable is `./ls`; it is never installed over the system `ls` command.
-`make demo` demonstrates `--` before an operand beginning with `-` in a
-temporary directory, without modifying the repository.
 
 Development targets:
 
 ```sh
 make help
 make verify
-make demo
 make debug
 make sanitize
 make test
@@ -545,5 +524,3 @@ and `tests/`.
 
 ## Additional documentation
 
-- [`HUONG_DAN_CHAY.md`](HUONG_DAN_CHAY.md): exact Linux build, test, demo, and
-  cleanup commands for the instructor.
